@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Finance Backend Tester</title>
+</head>
+<body>
+
+  <h1>User API Tester</h1>
+
+  <h2>Create User</h2>
+  <input id="name" placeholder="Name">
+  <input id="email" placeholder="Email">
+  <select id="role">
+    <option value="viewer">Viewer</option>
+    <option value="analyst">Analyst</option>
+    <option value="admin">Admin</option>
+  </select>
+  <button onclick="createUser()">Create</button>
+
+  <hr>
+
+  <h2>All Users</h2>
+  <button onclick="getUsers()">Load Users</button>
+  <ul id="userList"></ul>
+
+  <script>
+
+    async function createUser() {
+      const name = document.getElementById("name").value;
+      const email = document.getElementById("email").value;
+      const role = document.getElementById("role").value;
+
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name, email, role })
+      });
+
+      const data = await res.json();
+      alert(JSON.stringify(data));
+    }
+
+    async function getUsers() {
+      const res = await fetch("/api/users");
+      const data = await res.json();
+
+      const list = document.getElementById("userList");
+      list.innerHTML = "";
+
+      data.data.forEach(user => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+            ${user.name} - ${user.role}
+            <button onclick="makeAdmin('${user._id}')">Make Admin</button>
+            `;
+        list.appendChild(li);
+      });
+    }
+    async function makeAdmin(id) {
+        await fetch(`/api/users/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ role: "admin" })
+        });
+        getUsers();
+        }
+
+  </script>
+
+</body>
+</html>
