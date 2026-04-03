@@ -3,29 +3,74 @@
 <head>
   <title>Finance Backend Tester</title>
 </head>
+
 <body>
 
-  <h1>User API Tester</h1>
+  <h1>Finance Backend Tester</h1>
 
-  <h2>Create User</h2>
-  <input id="name" placeholder="Name">
-  <input id="email" placeholder="Email">
-  <select id="role">
+  <h2>Select Role</h2>
+  <select id="currentRole">
     <option value="viewer">Viewer</option>
     <option value="analyst">Analyst</option>
     <option value="admin">Admin</option>
   </select>
-  <button onclick="createUser()">Create</button>
+
+  <p id="roleDisplay"></p>
+
+  <hr>
+
+  <div id="createSection">
+    <h2>Create User</h2>
+
+    <input id="name" placeholder="Name">
+    <input id="email" placeholder="Email">
+
+    <select id="role">
+      <option value="viewer">Viewer</option>
+      <option value="analyst">Analyst</option>
+      <option value="admin">Admin</option>
+    </select>
+
+    <button onclick="createUser()">Create</button>
+  </div>
 
   <hr>
 
   <h2>All Users</h2>
   <button onclick="getUsers()">Load Users</button>
+
   <ul id="userList"></ul>
 
   <script>
 
+    let currentRole = "viewer";
+
+    function updateRoleDisplay() {
+      document.getElementById("roleDisplay").innerText =
+        "Current Role: " + currentRole;
+    }
+
+    function updateUI() {
+      const createSection = document.getElementById("createSection");
+
+      if (currentRole === "admin") {
+        createSection.style.display = "block";
+      } else {
+        createSection.style.display = "none";
+      }
+    }
+
+    document.getElementById("currentRole").addEventListener("change", function(e) {
+      currentRole = e.target.value;
+      updateRoleDisplay();
+      updateUI();
+    });
+
+    updateRoleDisplay();
+    updateUI();
+
     async function createUser() {
+
       const name = document.getElementById("name").value;
       const email = document.getElementById("email").value;
       const role = document.getElementById("role").value;
@@ -33,39 +78,60 @@
       const res = await fetch("/api/users", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "role": currentRole
         },
         body: JSON.stringify({ name, email, role })
       });
 
       const data = await res.json();
       alert(JSON.stringify(data));
+      getUsers();
     }
 
     async function getUsers() {
-      const res = await fetch("/api/users");
+
+      const res = await fetch("/api/users", {
+        headers: {
+          "role": currentRole
+        }
+      });
+
       const data = await res.json();
 
       const list = document.getElementById("userList");
       list.innerHTML = "";
 
       data.data.forEach(user => {
+
         const li = document.createElement("li");
-        li.innerHTML = `
-            ${user.name} - ${user.role}
+
+        let content = user.name + " - " + user.email + " - " + user.role;
+
+        if (currentRole === "admin") {
+          content += ` 
             <button onclick="makeAdmin('${user._id}')">Make Admin</button>
-            `;
+          `;
+        }
+
+        li.innerHTML = content;
         list.appendChild(li);
       });
     }
+
     async function makeAdmin(id) {
-        await fetch(`/api/users/${id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ role: "admin" })
-        });
-        getUsers();
-        }
+
+      await fetch("/api/users/" + id, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "role": currentRole
+        },
+        body: JSON.stringify({ role: "admin" })
+      });
+
+      getUsers();
+    }
 
   </script>
 
