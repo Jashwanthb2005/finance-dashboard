@@ -25,7 +25,12 @@ const recordSchema = new mongoose.Schema({
   },
   notes: {
     type: String
-  }
+  },
+  isDeleted: {
+  type: Boolean,
+  default: false
+}
+  
 }, { timestamps: true });
 
 module.exports = mongoose.model("Record", recordSchema);

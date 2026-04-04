@@ -1,139 +1,264 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <title>Finance Backend Tester</title>
-</head>
+  <head>
+    <title>Finance Backend Tester</title>
+  </head>
 
-<body>
+  <body>
+    <h1>Finance Dashboard Backend Tester</h1>
 
-  <h1>Finance Backend Tester</h1>
-
-  <h2>Select Role</h2>
-  <select id="currentRole">
-    <option value="viewer">Viewer</option>
-    <option value="analyst">Analyst</option>
-    <option value="admin">Admin</option>
-  </select>
-
-  <p id="roleDisplay"></p>
-
-  <hr>
-
-  <div id="createSection">
-    <h2>Create User</h2>
-
-    <input id="name" placeholder="Name">
-    <input id="email" placeholder="Email">
-
-    <select id="role">
+    <h2>Select Role</h2>
+    <select id="currentRole">
       <option value="viewer">Viewer</option>
       <option value="analyst">Analyst</option>
       <option value="admin">Admin</option>
     </select>
+    <p id="roleDisplay"></p>
 
-    <button onclick="createUser()">Create</button>
-  </div>
+    <hr />
+    <div id="userSection">
+      <h2>Create User</h2>
+      <input id="uname" placeholder="Name" />
+      <input id="uemail" placeholder="Email" />
+      <select id="urole">
+        <option value="viewer">Viewer</option>
+        <option value="analyst">Analyst</option>
+        <option value="admin">Admin</option>
+      </select>
+      <button onclick="createUser()">Create User</button>
+    </div>
 
-  <hr>
+    <hr />
 
-  <h2>All Users</h2>
-  <button onclick="getUsers()">Load Users</button>
+    <h2>Users</h2>
+    <button onclick="getUsers()">Load Users</button>
+    <ul id="userList"></ul>
 
-  <ul id="userList"></ul>
+    <hr />
 
-  <script>
+    <div id="recordSection">
+      <h2>Create Record</h2>
 
-    let currentRole = "viewer";
+      <input id="rUserId" placeholder="User ID" />
+      <input id="amount" placeholder="Amount" />
 
-    function updateRoleDisplay() {
-      document.getElementById("roleDisplay").innerText =
-        "Current Role: " + currentRole;
-    }
+      <select id="type">
+        <option value="income">Income</option>
+        <option value="expense">Expense</option>
+      </select>
 
-    function updateUI() {
-      const createSection = document.getElementById("createSection");
+      <input id="category" placeholder="Category" />
+      <input id="date" type="date" />
+      <input id="notes" placeholder="Notes" />
 
-      if (currentRole === "admin") {
-        createSection.style.display = "block";
-      } else {
-        createSection.style.display = "none";
+      <button onclick="createRecord()">Create Record</button>
+    </div>
+
+    <hr />
+
+    <h2>Records</h2>
+    <button onclick="getRecords()">Load Records</button>
+    <ul id="recordList"></ul>
+
+    <hr />
+
+    <h2>Analytics</h2>
+    <button onclick="getSummary()">Summary</button>
+    <button onclick="getCategories()">Categories</button>
+    <button onclick="getTrends()">Trends</button>
+    <button onclick="getRecent()">Recent</button>
+
+    <pre id="analyticsOutput"></pre>
+
+    <script>
+      let currentRole = "viewer";
+
+      function updateRole() {
+        document.getElementById("roleDisplay").innerText =
+          "Current Role: " + currentRole;
+
+        document.getElementById("userSection").style.display =
+          currentRole === "admin" ? "block" : "none";
+
+        document.getElementById("recordSection").style.display =
+          currentRole === "admin" ? "block" : "none";
       }
-    }
 
-    document.getElementById("currentRole").addEventListener("change", function(e) {
-      currentRole = e.target.value;
-      updateRoleDisplay();
-      updateUI();
-    });
-
-    updateRoleDisplay();
-    updateUI();
-
-    async function createUser() {
-
-      const name = document.getElementById("name").value;
-      const email = document.getElementById("email").value;
-      const role = document.getElementById("role").value;
-
-      const res = await fetch("/api/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "role": currentRole
-        },
-        body: JSON.stringify({ name, email, role })
+      document.getElementById("currentRole").addEventListener("change", (e) => {
+        currentRole = e.target.value;
+        updateRole();
       });
 
-      const data = await res.json();
-      alert(JSON.stringify(data));
-      getUsers();
-    }
+      updateRole();
 
-    async function getUsers() {
+      async function createUser() {
+        const res = await fetch("/api/users", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            role: currentRole,
+            status: "active",
+          },
+          body: JSON.stringify({
+            name: document.getElementById("uname").value,
+            email: document.getElementById("uemail").value,
+            role: document.getElementById("urole").value,
+          }),
+        });
 
-      const res = await fetch("/api/users", {
-        headers: {
-          "role": currentRole
+        alert(JSON.stringify(await res.json()));
+        getUsers();
+      }
+      async function makeAdmin(id) {
+        await fetch("/api/users/" + id, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            role: currentRole,
+            status: "active",
+          },
+          body: JSON.stringify({ role: "admin" }),
+        });
+
+        getUsers();
+      }
+      async function getUsers() {
+        const res = await fetch("/api/users", {
+          headers: {
+            role: currentRole,
+            status: "active",
+          },
+        });
+
+        const data = await res.json();
+
+        const list = document.getElementById("userList");
+        list.innerHTML = "";
+
+        data.data.forEach((u) => {
+          const li = document.createElement("li");
+          li.innerText = `${u.name} - ${u.role} - ${u._id}`;
+          if (currentRole === "admin") {
+            const btn = document.createElement("button");
+            btn.innerText = "Make Admin";
+
+            btn.onclick = () => makeAdmin(u._id);
+
+            li.appendChild(btn);
+          }
+
+          list.appendChild(li);
+        });
+      }
+
+      async function createRecord() {
+        const res = await fetch("/api/records", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            role: currentRole,
+            status: "active",
+          },
+          body: JSON.stringify({
+            userId: document.getElementById("rUserId").value,
+            amount: Number(document.getElementById("amount").value),
+            type: document.getElementById("type").value,
+            category: document.getElementById("category").value,
+            date: document.getElementById("date").value,
+            notes: document.getElementById("notes").value,
+          }),
+        });
+
+        alert(JSON.stringify(await res.json()));
+        getRecords();
+      }
+
+      async function getRecords() {
+        const res = await fetch("/api/records", {
+          headers: {
+            role: currentRole,
+            status: "active",
+          },
+        });
+
+        const data = await res.json();
+        console.log("RECORD RESPONSE:", data);
+
+        const list = document.getElementById("recordList");
+        list.innerHTML = "";
+
+        let records = [];
+
+        if (data.data && Array.isArray(data.data.records)) {
+          records = data.data.records;
+        } else {
+          list.innerHTML = "<li>No records found</li>";
+          return;
         }
-      });
 
-      const data = await res.json();
+        records.forEach((r) => {
+          const li = document.createElement("li");
 
-      const list = document.getElementById("userList");
-      list.innerHTML = "";
+          li.innerText = `${r.type} - ${r.amount} - ${r.category}`;
 
-      data.data.forEach(user => {
+          if (currentRole === "admin") {
+            const btn = document.createElement("button");
+            btn.innerText = "Delete";
+            btn.onclick = () => deleteRecord(r._id);
+            li.appendChild(btn);
+          }
 
-        const li = document.createElement("li");
+          list.appendChild(li);
+        });
+      }
+      async function deleteRecord(id) {
+        await fetch("/api/records/" + id, {
+          method: "DELETE",
+          headers: {
+            role: currentRole,
+            status: "active",
+          },
+        });
 
-        let content = user.name + " - " + user.email + " - " + user.role;
+        getRecords();
+      }
 
-        if (currentRole === "admin") {
-          content += ` 
-            <button onclick="makeAdmin('${user._id}')">Make Admin</button>
-          `;
+      async function getSummary() {
+        fetchAnalytics("/summary");
+      }
+
+      async function getCategories() {
+        fetchAnalytics("/categories");
+      }
+
+      async function getTrends() {
+        fetchAnalytics("/trends");
+      }
+
+      async function getRecent() {
+        fetchAnalytics("/recent");
+      }
+
+      async function fetchAnalytics(endpoint) {
+        const res = await fetch("/api/analytics" + endpoint, {
+          headers: {
+            role: currentRole,
+            status: "active",
+          },
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.error || "Something went wrong");
+          return;
         }
-
-        li.innerHTML = content;
-        list.appendChild(li);
-      });
-    }
-
-    async function makeAdmin(id) {
-
-      await fetch("/api/users/" + id, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "role": currentRole
-        },
-        body: JSON.stringify({ role: "admin" })
-      });
-
-      getUsers();
-    }
-
-  </script>
-
-</body>
+        document.getElementById("analyticsOutput").innerText = JSON.stringify(
+          data,
+          null,
+          2,
+        );
+      }
+    </script>
+  </body>
 </html>
