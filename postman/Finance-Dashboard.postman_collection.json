@@ -1,0 +1,340 @@
+{
+  "info": {
+    "name": "Finance Dashboard",
+    "description": "Use this collection when you test the API by hand in Postman (assignment / lab).\n\nBEFORE YOU START\n1. Open terminal in the project folder and run: npm run dev\n2. Check the server port (usually 5000). If different, change the variable baseUrl.\n3. There is no login screen. The API checks WHO you are using HEADERS named role and status.\n4. For testing, keep role = admin in Variables so most requests work without thinking.\n\nHOW TO TEST IN ORDER (recommended)\n• Run \"ping server\" first — if it fails, fix the server before anything else.\n• Then \"create user\" — copy the _id from the response JSON.\n• Click the collection name → Variables → paste that id into userId (save).\n• Then \"add money record\" — use the same userId. Copy record _id into recordId for edit/delete.\n• Analytics: needs analyst or admin — admin is fine.\n\nIF SOMETHING FAILS\n• 401 → you forgot the role header (or role is empty).\n• 403 → wrong role for that action, or status is inactive.\n• 400 on create user → email already used, change email in the body and send again.\n• Invalid id → check you pasted full Mongo id (24 characters, no spaces).\n\nVariables (collection → Variables tab)\n• baseUrl — your API address\n• role — admin for full testing\n• userId / recordId — paste from responses when the instructions say so",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "description": "change only if your server uses another port" },
+    { "key": "role", "value": "admin", "description": "header: who you are — admin is easiest for manual tests" },
+    { "key": "status", "value": "active", "description": "header: active or inactive" },
+    { "key": "userId", "value": "", "description": "paste _id from create user response (required before add record / update user)" },
+    { "key": "recordId", "value": "", "description": "paste _id from add record response (required before update/delete record)" }
+  ],
+  "item": [
+    {
+      "name": "A — start here",
+      "description": "Quick check that the backend is running.",
+      "item": [
+        {
+          "name": "1 ping server (no headers)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health",
+            "description": "You should see: message = Server is running.\nNo role header needed for this one.\nIf this fails, start the server first (npm run dev)."
+          },
+          "response": [
+            {
+              "name": "example 200",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Server is running\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "B — users",
+      "description": "Create a user first, then copy _id to collection variable userId.\nOnly admin can create or update users (your role variable is admin by default).",
+      "item": [
+        {
+          "name": "2 create student user",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "role", "value": "{{role}}", "description": "must be admin to create" },
+              { "key": "status", "value": "{{status}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rahul Kumar\",\n  \"email\": \"rahul.student@college.edu\",\n  \"role\": \"viewer\",\n  \"status\": \"active\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users",
+            "description": "MANUAL STEP: After Send, copy data._id from the response.\nGo to collection → Variables → paste into userId → Save.\nIf you see Email already exists, change the email in the body and try again.\nSuccess looks like: success true and data has your new user."
+          },
+          "response": [
+            {
+              "name": "example 201",
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"_id\": \"6610abc1234567890def1111\",\n    \"name\": \"Rahul Kumar\",\n    \"email\": \"rahul.student@college.edu\",\n    \"role\": \"viewer\",\n    \"status\": \"active\"\n  }\n}"
+            },
+            {
+              "name": "example duplicate email",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": \"Email already exists\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "3 see all users",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "role", "value": "{{role}}" },
+              { "key": "status", "value": "{{status}}" }
+            ],
+            "url": "{{baseUrl}}/api/users",
+            "description": "Viewer can also call this (read only).\nCheck that your user appears in the list."
+          },
+          "response": [
+            {
+              "name": "example 200",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"_id\": \"6610abc1234567890def1111\",\n      \"name\": \"Rahul Kumar\",\n      \"email\": \"rahul.student@college.edu\",\n      \"role\": \"viewer\",\n      \"status\": \"active\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "4 change user details",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "role", "value": "{{role}}", "description": "admin" },
+              { "key": "status", "value": "{{status}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rahul K.\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users/{{userId}}",
+            "description": "MANUAL STEP: userId variable must be filled from step 2 (create user).\nIf userId is empty you will get a bad URL or error.\nYou can change name, email, role, status in the JSON — try small changes."
+          },
+          "response": [
+            {
+              "name": "example 200",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"_id\": \"6610abc1234567890def1111\",\n    \"name\": \"Rahul K.\",\n    \"email\": \"rahul.student@college.edu\",\n    \"role\": \"viewer\",\n    \"status\": \"active\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "C — money records",
+      "description": "Needs a real userId from step B.\nThen paste record id into recordId for update and delete.\nDefault role admin can add/edit/delete records.",
+      "item": [
+        {
+          "name": "5 add expense (canteen)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "role", "value": "{{role}}", "description": "admin" },
+              { "key": "status", "value": "{{status}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"amount\": 80,\n  \"type\": \"expense\",\n  \"category\": \"canteen\",\n  \"date\": \"2026-04-05T12:00:00.000Z\",\n  \"notes\": \"lunch\"\n}"
+            },
+            "url": "{{baseUrl}}/api/records",
+            "description": "MANUAL STEP: userId must be the same id you saved in Variables.\nAfter Send, copy data._id into collection variable recordId.\nTry income too: change type to income and category to pocket money or part-time."
+          },
+          "response": [
+            {
+              "name": "example 201",
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"_id\": \"6610abc1234567890def2222\",\n    \"userId\": \"6610abc1234567890def1111\",\n    \"amount\": 80,\n    \"type\": \"expense\",\n    \"category\": \"canteen\",\n    \"date\": \"2026-04-05T12:00:00.000Z\",\n    \"notes\": \"lunch\",\n    \"isDeleted\": false\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "6 list my records (try filters)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "role", "value": "{{role}}" },
+              { "key": "status", "value": "{{status}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/records",
+              "query": [
+                { "key": "page", "value": "1", "description": "which page", "disabled": true },
+                { "key": "limit", "value": "5", "description": "how many rows", "disabled": true },
+                { "key": "type", "value": "expense", "description": "income or expense", "disabled": true },
+                { "key": "category", "value": "canteen", "description": "exact category text", "disabled": true },
+                { "key": "startDate", "value": "2026-04-01", "description": "use with endDate", "disabled": true },
+                { "key": "endDate", "value": "2026-04-30", "description": "use with startDate", "disabled": true },
+                { "key": "search", "value": "lunch", "description": "search in category or notes", "disabled": true }
+              ]
+            },
+            "description": "Response data has: total, page, limit, records (list of rows).\nTurn on Params in Postman if you want to filter — all params are optional.\nGood manual test: enable only type=expense and Send."
+          },
+          "response": [
+            {
+              "name": "example 200",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"total\": 2,\n    \"page\": 1,\n    \"limit\": 5,\n    \"records\": [\n      {\n        \"amount\": 80,\n        \"type\": \"expense\",\n        \"category\": \"canteen\"\n      },\n      {\n        \"amount\": 5000,\n        \"type\": \"income\",\n        \"category\": \"pocket money\"\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "7 edit a record",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "role", "value": "{{role}}", "description": "admin" },
+              { "key": "status", "value": "{{status}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 90,\n  \"notes\": \"edited after checking bill\"\n}"
+            },
+            "url": "{{baseUrl}}/api/records/{{recordId}}",
+            "description": "MANUAL STEP: recordId must be from step 5 (add record).\nYou can only send: amount, type, category, date, notes (pick what you want to change)."
+          },
+          "response": [
+            {
+              "name": "example 200",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"_id\": \"6610abc1234567890def2222\",\n    \"amount\": 90,\n    \"notes\": \"edited after checking bill\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "8 delete record (soft)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "role", "value": "{{role}}", "description": "admin" },
+              { "key": "status", "value": "{{status}}" }
+            ],
+            "url": "{{baseUrl}}/api/records/{{recordId}}",
+            "description": "This does not remove from database forever — it marks deleted.\nMessage in response: Record deleted.\nTest this last if you still need the same record for other calls."
+          },
+          "response": [
+            {
+              "name": "example 200",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Record deleted\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "D — analytics",
+      "description": "Needs role analyst or admin. Your default admin works.\nCall these after you have some income/expense data in the database.",
+      "item": [
+        {
+          "name": "9 total income expense balance",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "role", "value": "{{role}}" },
+              { "key": "status", "value": "{{status}}" }
+            ],
+            "url": "{{baseUrl}}/api/analytics/summary",
+            "description": "Shows totalIncome, totalExpense, netBalance.\nGood quick check after adding a few test records."
+          },
+          "response": [
+            {
+              "name": "example 200",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"totalIncome\": 5000,\n    \"totalExpense\": 80,\n    \"netBalance\": 4920\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "10 money per category",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "role", "value": "{{role}}" },
+              { "key": "status", "value": "{{status}}" }
+            ],
+            "url": "{{baseUrl}}/api/analytics/categories",
+            "description": "Each line has _id = category name and total = sum.\n(Do not expect a field named category — the API uses _id here.)"
+          },
+          "response": [
+            {
+              "name": "example 200",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    { \"_id\": \"canteen\", \"total\": 80 },\n    { \"_id\": \"pocket money\", \"total\": 5000 }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "11 month wise trend",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "role", "value": "{{role}}" },
+              { "key": "status", "value": "{{status}}" }
+            ],
+            "url": "{{baseUrl}}/api/analytics/trends",
+            "description": "_id is month number (1 = Jan ... 12 = Dec), not month name.\nCompare income vs expense per month."
+          },
+          "response": [
+            {
+              "name": "example 200",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    { \"_id\": 4, \"income\": 5000, \"expense\": 80 }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "12 last 5 transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "role", "value": "{{role}}" },
+              { "key": "status", "value": "{{status}}" }
+            ],
+            "url": "{{baseUrl}}/api/analytics/recent",
+            "description": "Shows 5 newest rows (by time created).\nUseful to see if your last POST worked."
+          },
+          "response": [
+            {
+              "name": "example 200",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"_id\": \"6610abc1234567890def2222\",\n      \"amount\": 80,\n      \"type\": \"expense\",\n      \"category\": \"canteen\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
